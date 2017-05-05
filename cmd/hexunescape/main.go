@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/akrylysov/hexunescape"
@@ -24,7 +25,7 @@ func main() {
 		}
 		defer in.Close()
 	}
-	if err := hexunescape.Unescape(os.Stdout, in); err != nil {
+	if _, err := io.Copy(os.Stdout, hexunescape.NewReader(in)); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}

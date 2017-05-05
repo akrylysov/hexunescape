@@ -3,6 +3,7 @@ package hexunescape
 import (
 	"bytes"
 	"encoding/hex"
+	"io"
 	"io/ioutil"
 	"math/rand"
 	"strings"
@@ -30,7 +31,7 @@ func TestUnescape(t *testing.T) {
 	}
 	for _, testCase := range testCases {
 		w := bytes.NewBuffer(nil)
-		if err := Unescape(w, strings.NewReader(testCase.in)); err != nil {
+		if _, err := io.Copy(w, NewReader(strings.NewReader(testCase.in))); err != nil {
 			t.Errorf("%s err: %v", testCase.in, err)
 		}
 		if out := w.String(); out != testCase.out {
@@ -47,7 +48,7 @@ func TestUnescapeError(t *testing.T) {
 		`\xzza`,
 	}
 	for _, testCase := range testCases {
-		if err := Unescape(ioutil.Discard, strings.NewReader(testCase)); err == nil {
+		if _, err := io.Copy(ioutil.Discard, NewReader(strings.NewReader(testCase))); err == nil {
 			t.Errorf("%s got: %v want: error", testCase, err)
 		}
 	}
@@ -74,7 +75,7 @@ func generateRandomData(n int) ([]byte, []byte) {
 func TestUnescapeRandom(t *testing.T) {
 	unescaped, escaped := generateRandomData(1024 * 1024)
 	w := bytes.NewBuffer(nil)
-	if err := Unescape(w, bytes.NewReader(escaped)); err != nil {
+	if _, err := io.Copy(w, NewReader(bytes.NewReader(escaped))); err != nil {
 		t.Error(err)
 	}
 	if !bytes.Equal(unescaped, w.Bytes()) {
@@ -87,7 +88,7 @@ func benchmarkUnescape(b *testing.B, inputLen int) {
 	b.ResetTimer()
 	b.SetBytes(int64(len(escaped)))
 	for i := 0; i < b.N; i++ {
-		if err := Unescape(ioutil.Discard, bytes.NewReader(escaped)); err != nil {
+		if _, err := io.Copy(ioutil.Discard, NewReader(bytes.NewReader(escaped))); err != nil {
 			b.Error(err)
 		}
 	}

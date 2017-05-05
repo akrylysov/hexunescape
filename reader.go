@@ -31,31 +31,33 @@ func parseHexEscape(r *bufio.Reader) (byte, error) {
 	return decoded[0], nil
 }
 
-// Unescape decodes hexadecimal escaped input text from io.Reader into io.Writer.
-func Unescape(dst io.Writer, src io.Reader) error {
-	bdst := bufio.NewWriter(dst)
-	bsrc := bufio.NewReader(src)
+type reader struct {
+	r *bufio.Reader
+}
+
+func (r *reader) Read(p []byte) (int, error) {
+	max := len(p) - 1
+	i := 0
 	for {
-		ch, err := bsrc.ReadByte()
+		ch, err := r.r.ReadByte()
 		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return err
+			return i, err
 		}
 		if ch == '\\' {
-			if ch, err = parseHexEscape(bsrc); err != nil {
-				return err
+			if ch, err = parseHexEscape(r.r); err != nil {
+				return i, err
 			}
 		}
-		if err := bdst.WriteByte(ch); err != nil {
-			return err
-		}
-		if ch == '\n' {
-			if err := bdst.Flush(); err != nil {
-				return err
-			}
+		p[i] = ch
+		i++
+		if i == max || ch == '\n' {
+			break
 		}
 	}
-	return bdst.Flush()
+	return i, nil
+}
+
+// NewReader constructs a new hexadecimal escaped stream reader.
+func NewReader(r io.Reader) io.Reader {
+	return &reader{r: bufio.NewReader(r)}
 }
